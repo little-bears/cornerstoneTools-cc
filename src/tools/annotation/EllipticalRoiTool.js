@@ -355,7 +355,7 @@ function _getUnit(modality, showHounsfieldUnits) {
 function _createTextBoxContent(
   context,
   isColorImage,
-  { area, mean, stdDev, min, max, meanStdDevSUV } = {},
+  { area, perimeter, mean, stdDev, min, max, meanStdDevSUV } = {},
   modality,
   hasPixelSpacing,
   options = {}
@@ -415,7 +415,7 @@ function _createTextBoxContent(
     }
   }
 
-  textLines.push(_formatArea(area, hasPixelSpacing));
+  textLines.push(_formatArea(area, perimeter, hasPixelSpacing));
   otherLines.forEach(x => textLines.push(x));
 
   return textLines;
@@ -428,13 +428,15 @@ function _createTextBoxContent(
  * @param {*} hasPixelSpacing
  * @returns {string} The formatted label for showing area
  */
-function _formatArea(area, hasPixelSpacing) {
+function _formatArea(area, perimeter, hasPixelSpacing) {
   // This uses Char code 178 for a superscript 2
   const suffix = hasPixelSpacing
     ? ` mm${String.fromCharCode(178)}`
     : ` px${String.fromCharCode(178)}`;
-
-  return `Area: ${numbersWithCommas(area.toFixed(2))}${suffix}`;
+  const cc = hasPixelSpacing ? ' mm' : ' px';
+  return `Area: ${numbersWithCommas(
+    area.toFixed(2)
+  )}${suffix} Perimeter: ${numbersWithCommas(perimeter.toFixed(2))}${cc}`;
 }
 
 /**
@@ -484,8 +486,20 @@ function _calculateStats(image, element, handles, modality, pixelSpacing) {
     ((ellipseCoordinates.width * (pixelSpacing.colPixelSpacing || 1)) / 2) *
     ((ellipseCoordinates.height * (pixelSpacing.rowPixelSpacing || 1)) / 2);
 
+  // 添加椭圆周长的计算
+  let a = (ellipseCoordinates.width * (pixelSpacing.colPixelSpacing || 1)) / 2; // 长轴
+  let b = (ellipseCoordinates.height * (pixelSpacing.rowPixelSpacing || 1)) / 2; // 短轴
+  if (a < b) {
+    // 若a的长度小于b，交换a,b
+    let temp = a;
+    a = b;
+    b = temp;
+  }
+  const perimeter = 2 * Math.PI * b + 4 * (a - b);
+
   return {
     area: area || 0,
+    perimeter: perimeter || 0,
     count: ellipseMeanStdDev.count || 0,
     mean: ellipseMeanStdDev.mean || 0,
     variance: ellipseMeanStdDev.variance || 0,

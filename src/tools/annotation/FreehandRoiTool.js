@@ -330,6 +330,34 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
       data.area = area;
     }
 
+    // 计算多边形周长
+    let pointArray = data.handles.points;
+    const pointsLength = pointArray.length;
+    let perimeter = 0;
+    for (let i = 1; i < pointsLength; i++) {
+      perimeter += Math.sqrt(
+        (pointArray[i].x - pointArray[i - 1].x) *
+          rowPixelSpacing *
+          (pointArray[i].x - pointArray[i - 1].x) *
+          rowPixelSpacing +
+          (pointArray[i].y - pointArray[i - 1].y) *
+            columnPixelSpacing *
+            (pointArray[i].y - pointArray[i - 1].y) *
+            rowPixelSpacing
+      );
+    }
+    perimeter += Math.sqrt(
+      (pointArray[0].x - pointArray[pointsLength - 1].x) *
+        rowPixelSpacing *
+        (pointArray[0].x - pointArray[pointsLength - 1].x) *
+        rowPixelSpacing +
+        (pointArray[0].y - pointArray[pointsLength - 1].y) *
+          columnPixelSpacing *
+          (pointArray[0].y - pointArray[pointsLength - 1].y) *
+          rowPixelSpacing
+    );
+    data.perimeter = perimeter || 0;
+
     // Set the invalidated flag to false so that this data won't automatically be recalculated
     data.invalidated = false;
   }
@@ -504,7 +532,7 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
     }
 
     function textBoxText(data) {
-      const { meanStdDev, meanStdDevSUV, area } = data;
+      const { meanStdDev, meanStdDevSUV, area, perimeter } = data;
       // Define an array to store the rows of text for the textbox
       const textLines = [];
 
@@ -548,13 +576,16 @@ export default class FreehandRoiTool extends BaseAnnotationTool {
         // If pixel spacing is present, use millimeters. Otherwise, use pixels.
         // This uses Char code 178 for a superscript 2
         let suffix = ` mm${String.fromCharCode(178)}`;
-
+        let cc = ' mm';
         if (!image.rowPixelSpacing || !image.columnPixelSpacing) {
           suffix = ` pixels${String.fromCharCode(178)}`;
+          cc = ' px';
         }
 
         // Create a line of text to display the area and its units
-        const areaText = `Area: ${numbersWithCommas(area.toFixed(2))}${suffix}`;
+        const areaText = `Area: ${numbersWithCommas(
+          area.toFixed(2)
+        )}${suffix} Perimeter: ${numbersWithCommas(perimeter.toFixed(2))}${cc}`;
 
         // Add this text line to the array to be displayed in the textbox
         textLines.push(areaText);

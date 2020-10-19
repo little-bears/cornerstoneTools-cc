@@ -339,8 +339,14 @@ function _calculateStats(image, element, handles, modality, pixelSpacing) {
     (pixelSpacing.colPixelSpacing || 1) *
     (roiCoordinates.height * (pixelSpacing.rowPixelSpacing || 1));
 
+  const perimeter =
+    (roiCoordinates.width * (pixelSpacing.colPixelSpacing || 1) +
+      roiCoordinates.height * (pixelSpacing.rowPixelSpacing || 1)) *
+    2;
+
   return {
     area: area || 0,
+    perimeter: perimeter || 0,
     count: roiMeanStdDev.count || 0,
     mean: roiMeanStdDev.mean || 0,
     variance: roiMeanStdDev.variance || 0,
@@ -445,13 +451,15 @@ function _findTextBoxAnchorPoints(startHandle, endHandle) {
  * @param {*} hasPixelSpacing
  * @returns {string} The formatted label for showing area
  */
-function _formatArea(area, hasPixelSpacing) {
+function _formatArea(area, perimeter, hasPixelSpacing) {
   // This uses Char code 178 for a superscript 2
   const suffix = hasPixelSpacing
     ? ` mm${String.fromCharCode(178)}`
     : ` px${String.fromCharCode(178)}`;
-
-  return `Area: ${numbersWithCommas(area.toFixed(2))}${suffix}`;
+  const cc = hasPixelSpacing ? ' mm' : ' px';
+  return `Area: ${numbersWithCommas(
+    area.toFixed(2)
+  )}${suffix} Perimeter: ${numbersWithCommas(perimeter.toFixed(2))}${cc}`;
 }
 
 function _getUnit(modality, showHounsfieldUnits) {
@@ -473,7 +481,7 @@ function _getUnit(modality, showHounsfieldUnits) {
 function _createTextBoxContent(
   context,
   isColorImage,
-  { area, mean, stdDev, min, max, meanStdDevSUV },
+  { area, perimeter, mean, stdDev, min, max, meanStdDevSUV },
   modality,
   hasPixelSpacing,
   options = {}
@@ -533,7 +541,7 @@ function _createTextBoxContent(
     }
   }
 
-  textLines.push(_formatArea(area, hasPixelSpacing));
+  textLines.push(_formatArea(area, perimeter, hasPixelSpacing));
   otherLines.forEach(x => textLines.push(x));
 
   return textLines;
